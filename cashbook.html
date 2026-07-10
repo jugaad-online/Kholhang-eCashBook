@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kholhang eCashBook</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface2: #243044;
+      --text: #e8edf4;
+      --muted: #8b9cb3;
+      --income: #22c55e;
+      --income-dim: rgba(34, 197, 94, 0.12);
+      --expense: #ef4444;
+      --expense-dim: rgba(239, 68, 68, 0.12);
+      --accent: #3b82f6;
+      --radius: 12px;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(160deg, #0a0e14 0%, #152238 50%, #0f1419 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 1rem 1rem 5.5rem;
+      line-height: 1.5;
+    }
+    .app { max-width: 560px; margin: 0 auto; }
+    header { text-align: center; padding: 1rem 0; }
+    header h1 { font-size: 1.35rem; font-weight: 700; }
+    header p { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+    .balance-card {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: var(--shadow);
+    }
+    .balance-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .balance-amount { font-size: 2rem; font-weight: 700; margin-top: 0.35rem; font-variant-numeric: tabular-nums; }
+    .balance-amount.positive { color: var(--income); }
+    .balance-amount.negative { color: var(--expense); }
+    .balance-hint { font-size: 0.75rem; color: var(--muted); margin-top: 0.35rem; }
+    .mini-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-top: 1rem; }
+    .mini-stat { padding: 0.55rem 0.65rem; border-radius: 8px; font-size: 0.72rem; }
+    .mini-stat.income { background: var(--income-dim); color: var(--income); }
+    .mini-stat.expense { background: var(--expense-dim); color: var(--expense); }
+    .mini-stat.open { background: rgba(59,130,246,0.12); color: var(--accent); }
+    .mini-stat span { display: block; font-weight: 600; font-size: 0.95rem; margin-top: 0.1rem; color: var(--text); }
+
+    .tabs {
+      display: flex; gap: 0.35rem; background: var(--surface); padding: 0.35rem;
+      border-radius: var(--radius); margin-bottom: 1rem; border: 1px solid rgba(255,255,255,0.06);
+    }
+    .tab {
+      flex: 1; border: none; background: transparent; color: var(--muted);
+      padding: 0.65rem 0.4rem; border-radius: 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+    }
+    .tab.active { background: var(--surface2); color: var(--text); }
+    .tab.active.income-tab { color: var(--income); }
+    .tab.active.expense-tab { color: var(--expense); }
+    .tab.active.report-tab { color: var(--accent); }
+
+    .panel { display: none; }
+    .panel.active { display: block; animation: fade 0.2s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    .card {
+      background: var(--surface); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow); margin-bottom: 1rem;
+    }
+    .card h2 { font-size: 1rem; margin-bottom: 0.75rem; font-weight: 600; }
+    .card h3 { font-size: 0.85rem; color: var(--muted); margin: 1.25rem 0 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    label { display: block; font-size: 0.75rem; color: var(--muted); margin: 0.65rem 0 0.3rem; }
+    label:first-of-type { margin-top: 0; }
+    input, select, textarea {
+      width: 100%; padding: 0.6rem 0.75rem; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; background: var(--bg); color: var(--text); font-size: 0.9rem;
+    }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); }
+    input:read-only { opacity: 0.85; cursor: default; }
+    textarea { resize: vertical; min-height: 64px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+
+    .date-field {
+      position: relative;
+      display: block;
+      width: 100%;
+    }
+    .date-field .date-display {
+      width: 100%;
+      padding-right: 2.5rem;
+      pointer-events: none;
+      cursor: pointer;
+    }
+    .date-field .date-picker-native {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      margin: 0;
+      border: none;
+      background: transparent;
+    }
+    .date-field .date-cal {
+      position: absolute;
+      right: 0.65rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1rem;
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    .btn {
+      padding: 0.7rem 1rem; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-block { width: 100%; margin-top: 1rem; }
+    .btn-income { background: var(--income); color: #052e16; }
+    .btn-expense { background: var(--expense); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); }
+    .btn-sm { padding: 0.4rem 0.65rem; font-size: 0.78rem; }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+    .btn-row .btn { flex: 1; min-width: 120px; margin-top: 0; }
+
+    .toolbar { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; align-items: center; }
+    .toolbar input { margin: 0; flex: 1; }
+
+    .entry-cards {
+      display: flex; flex-direction: column; gap: 0.65rem;
+      max-height: 420px; overflow-y: auto; padding-right: 2px;
+    }
+    .entry-card {
+      background: var(--bg);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 0.85rem 0.9rem;
+      border-left: 4px solid var(--muted);
+      position: relative;
+    }
+    .entry-card.income { border-left-color: var(--income); }
+    .entry-card.expenditure { border-left-color: var(--expense); }
+    .entry-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+    .entry-card-title { font-weight: 600; font-size: 0.95rem; }
+    .entry-card-amount { font-weight: 700; font-size: 1.05rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .entry-card-amount.income { color: var(--income); }
+    .entry-card-amount.expenditure { color: var(--expense); }
+    .entry-card-meta { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
+    .badge {
+      font-size: 0.68rem; padding: 0.2rem 0.45rem; border-radius: 6px;
+      background: var(--surface2); color: var(--muted);
+    }
+    .badge.pay { color: var(--accent); }
+    .entry-card-note { font-size: 0.78rem; color: var(--muted); margin-top: 0.45rem; }
+    .entry-card-actions { display: flex; gap: 0.35rem; margin-top: 0.55rem; justify-content: flex-end; }
+
+    .list-empty { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 2rem 1rem; }
+
+    .report-summary { display: grid; gap: 0.5rem; margin-bottom: 1rem; }
+    .report-row {
+      display: flex; justify-content: space-between; padding: 0.65rem 0.75rem;
+      background: var(--bg); border-radius: 8px; font-size: 0.88rem;
+    }
+    .report-row strong { font-variant-numeric: tabular-nums; }
+    .cat-table { width: 100%; font-size: 0.8rem; border-collapse: collapse; margin-top: 0.5rem; }
+    .cat-table th, .cat-table td { padding: 0.45rem 0.35rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .cat-table th { color: var(--muted); font-weight: 600; }
+
+    .ledger-row { font-size: 0.8rem; }
+    .ledger-row .entry-card { padding: 0.65rem 0.75rem; }
+    .ledger-balance { font-size: 0.75rem; color: var(--accent); margin-top: 0.25rem; }
+
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+      z-index: 100; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-backdrop.mmss-layer { z-index: 110; }
+    .modal {
+      background: var(--surface); border-radius: var(--radius); padding: 1.25rem;
+      width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .modal h2 { margin-bottom: 0.75rem; }
+    .modal-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+    .modal-actions .btn { flex: 1; margin-top: 0; }
+
+    .xml-hint {
+      font-size: 0.72rem; color: var(--muted); margin-top: 0.75rem; padding: 0.65rem;
+      background: var(--bg); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1);
+    }
+    #file-xml { display: none; }
+
+    .fab {
+      position: fixed;
+      right: 1.25rem;
+      bottom: 1.25rem;
+      z-index: 90;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1.15rem;
+      border: none;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent) 0%, #2563eb 100%);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 10px 28px rgba(37, 99, 235, 0.45);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .fab:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(37, 99, 235, 0.5); }
+    .fab:active { transform: scale(0.97); }
+    .fab-icon {
+      width: 1.35rem;
+      height: 1.35rem;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.22);
+      display: grid;
+      place-items: center;
+      font-size: 1.15rem;
+      line-height: 1;
+    }
+
+    .type-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.35rem;
+      margin-bottom: 0.25rem;
+    }
+    .type-toggle button {
+      padding: 0.55rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .type-toggle button.active.expense { background: var(--expense-dim); color: var(--expense); border-color: var(--expense); }
+    .type-toggle button.active.income { background: var(--income-dim); color: var(--income); border-color: var(--income); }
+    .type-toggle.disabled { opacity: 0.55; pointer-events: none; }
+    .type-toggle.locked-hidden { display: none; }
+
+    .entry-type-locked {
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.45rem 0.65rem;
+      border-radius: 8px;
+      margin-bottom: 0.35rem;
+    }
+    .entry-type-locked.income { background: var(--income-dim); color: var(--income); }
+    .entry-type-locked.expenditure { background: var(--expense-dim); color: var(--expense); }
+
+    .transfer-hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin: 0.5rem 0 0.25rem;
+      padding: 0.5rem 0.65rem;
+      background: var(--bg);
+      border-radius: 8px;
+      border: 1px dashed rgba(255,255,255,0.12);
+    }
+    .btn-transfer { color: var(--accent); border: 1px solid rgba(59,130,246,0.35); background: rgba(59,130,246,0.1); }
+
+    .mmss-input {
+      text-align: center;
+      font-size: 1.35rem;
+      letter-spacing: 0.35em;
+      font-variant-numeric: tabular-nums;
+    }
+    .mmss-error { color: var(--expense); font-size: 0.8rem; margin-top: 0.35rem; }
+
+    .mmss-captcha {
+      margin: 0.75rem 0 0.5rem;
+      padding: 0.85rem 1rem;
+      border-radius: 10px;
+      border: 2px dashed rgba(255, 255, 255, 0.15);
+      background:
+        repeating-linear-gradient(
+          -12deg,
+          rgba(255, 255, 255, 0.03) 0,
+          rgba(255, 255, 255, 0.03) 2px,
+          transparent 2px,
+          transparent 8px
+        ),
+        var(--bg);
+      text-align: center;
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .mmss-captcha::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.08), transparent);
+      pointer-events: none;
+    }
+    .mmss-captcha-digits {
+      display: inline-flex;
+      gap: 0.35rem;
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.35);
+      position: relative;
+      z-index: 1;
+    }
+    .mmss-captcha-digits span {
+      display: inline-block;
+      min-width: 1.1em;
+      padding: 0.1rem 0.15rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .mmss-captcha-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    @media print {
+      body { background: #fff; color: #000; padding: 0; }
+      .fab, .tabs, .btn, .entry-card-actions, .toolbar, .modal-backdrop, .xml-hint, form { display: none !important; }
+      .panel { display: block !important; }
+      .balance-card, .card, .entry-card { box-shadow: none; border: 1px solid #ccc; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Seed / default XML (same structure as cashbook-data.xml) -->
+  <script type="application/xml" id="seed-xml"><![CDATA[
+<?xml version="1.0" encoding="UTF-8"?>
+<CashBook version="1" app="Kholhang eCashBook" updated="2026-07-10">
+  <Settings>
+    <BookName>Kholhang eCashBook</BookName>
+    <CurrencyCode>INR</CurrencyCode>
+    <CurrencySymbol>₹</CurrencySymbol>
+    <OpeningBalance>10000.00</OpeningBalance>
+  </Settings>
+  <Income>
+    <Entry id="inc-001" date="2026-07-01" category="Salary" payment="Bank">
+      <Description>July salary</Description>
+      <Amount>55000.00</Amount>
+      <Note>Main account credit</Note>
+    </Entry>
+    <Entry id="inc-002" date="2026-07-05" category="Business" payment="Cash">
+      <Description>Shop sales</Description>
+      <Amount>12500.00</Amount>
+      <Note></Note>
+    </Entry>
+    <Entry id="inc-003" date="2026-07-08" category="Other" payment="UPI">
+      <Description>UPI collection</Description>
+      <Amount>3200.00</Amount>
+      <Note>Customer payments</Note>
+    </Entry>
+  </Income>
+  <Expenditure>
+    <Entry id="exp-001" date="2026-07-02" category="Bills" payment="Bank">
+      <Description>Electricity bill</Description>
+      <Amount>2850.00</Amount>
+      <Note>State electricity board</Note>
+    </Entry>
+    <Entry id="exp-002" date="2026-07-03" category="Food" payment="Cash">
+      <Description>Market &amp; groceries</Description>
+      <Amount>4200.00</Amount>
+      <Note>Weekly stock</Note>
+    </Entry>
+    <Entry id="exp-003" date="2026-07-06" category="Transport" payment="Cash">
+      <Description>Fuel</Description>
+      <Amount>1500.00</Amount>
+      <Note></Note>
+    </Entry>
+    <Entry id="exp-004" date="2026-07-09" category="Shopping" payment="UPI">
+      <Description>Online purchase</Description>
+      <Amount>890.00</Amount>
+      <Note>Office supplies</Note>
+    </Entry>
+  </Expenditure>
+</CashBook>
+]]></script>
+
+  <div class="app">
+    <header>
+      <h1 id="bookTitle">Kholhang eCashBook</h1>
+      <p>Expenditure · Income · Report · XML data</p>
+    </header>
+
+    <div class="balance-card">
+      <div class="balance-label">Closing balance (INR)</div>
+      <div class="balance-amount positive" id="headerBalance">0.00</div>
+      <div class="balance-hint" id="balanceHint"></div>
+      <div class="mini-stats">
+        <div class="mini-stat open">Opening<span id="headerOpening">0.00</span></div>
+        <div class="mini-stat income">Income<span id="headerIncome">0.00</span></div>
+        <div class="mini-stat expense">Expenditure<span id="headerExpense">0.00</span></div>
+      </div>
+    </div>
+
+    <nav class="tabs" role="tablist">
+      <button type="button" class="tab expense-tab active" data-tab="expenditure">Expenditure</button>
+      <button type="button" class="tab income-tab" data-tab="income">Income</button>
+      <button type="button" class="tab report-tab" data-tab="report">Report</button>
+    </nav>
+
+    <section class="panel active" id="panel-expenditure">
+      <div class="card">
+        <h2>Expenditure entries</h2>
+        <div class="toolbar">
+          <input type="search" id="search-expenditure" placeholder="Search description, category…" />
+        </div>
+        <div class="entry-cards" id="cards-expenditure"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-income">
+      <div class="card">
+        <h2>Income entries</h2>
+        <div class="toolbar">
+          <input type="search" id="search-income" placeholder="Search description, category…" />
+        </div>
+        <div class="entry-cards" id="cards-income"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-report">
+      <div class="card" id="print-area">
+        <h2>Cashbook report</h2>
+        <div class="row2">
+          <div>
+            <label for="report-from">From</label>
+            <div class="date-field">
+              <input type="text" class="date-display" id="report-from-display" readonly placeholder="DD-MMM-YYYY" />
+              <input type="date" class="date-picker-native" id="report-from" data-display="report-from-display" />
+              <span class="date-cal" aria-hidden="true">📅</span>
+            </div>
+          </div>
+          <div>
+            <label for="report-to">To</label>
+            <div class="date-field">
+              <input type="text" class="date-display" id="report-to-display" readonly placeholder="DD-MMM-YYYY" />
+              <input type="date" class="date-picker-native" id="report-to" data-display="report-to-display" />
+              <span class="date-cal" aria-hidden="true">📅</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-block" id="btn-clear-filter">Show all dates</button>
+        <div class="report-summary" id="report-summary"></div>
+
+        <h3>By category</h3>
+        <div id="report-by-category"></div>
+
+        <h3>Ledger (running balance)</h3>
+        <div class="entry-cards ledger-row" id="ledger-list"></div>
+      </div>
+
+      <div class="card">
+        <h2>Settings &amp; XML</h2>
+        <label for="set-opening">Opening balance (INR)</label>
+        <input type="number" id="set-opening" step="0.01" />
+        <label for="set-currency">Currency</label>
+        <input type="text" id="set-currency" value="INR (₹)" readonly />
+        <button type="button" class="btn btn-secondary btn-block" id="btn-save-settings">Save settings</button>
+
+        <div class="btn-row">
+          <button type="button" class="btn btn-secondary" id="btn-export-xml">Export XML</button>
+          <button type="button" class="btn btn-secondary" id="btn-import-xml">Import XML</button>
+          <input type="file" id="file-xml" accept=".xml,text/xml,application/xml" />
+          <button type="button" class="btn btn-secondary" id="btn-export-csv">Export CSV</button>
+          <button type="button" class="btn btn-secondary" id="btn-print">Print report</button>
+          <button type="button" class="btn btn-secondary" id="btn-reload-file">Reload cashbook-data.xml</button>
+          <button type="button" class="btn btn-secondary" id="btn-reset-seed">Reset to sample XML</button>
+        </div>
+        <p class="xml-hint">
+          Data is stored as XML in your browser (<code>localStorage</code>). File
+          <strong>cashbook-data.xml</strong> in this folder matches the sample entries. Use Export XML to save changes, or Import / Reload when served from a local web server.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <button type="button" class="fab" id="fab-new-entry" aria-label="New entry">
+    <span class="fab-icon" aria-hidden="true">+</span>
+    <span id="fab-label">New Entry</span>
+  </button>
+
+  <div class="modal-backdrop" id="modal-entry">
+    <div class="modal" role="dialog" aria-labelledby="entry-modal-title" aria-modal="true">
+      <h2 id="entry-modal-title">New entry</h2>
+      <p class="entry-type-locked" id="entry-type-locked" hidden></p>
+      <div class="type-toggle" id="entry-type-toggle">
+        <button type="button" data-type="expenditure" class="active expense">Expenditure</button>
+        <button type="button" data-type="income" class="income">Income</button>
+      </div>
+      <p class="transfer-hint" id="entry-transfer-hint" hidden>
+        Wrong tab? Switch to <strong>Income</strong> or <strong>Expenditure</strong> above, then save to move this entry.
+      </p>
+      <form id="form-entry">
+        <input type="hidden" id="entry-id" value="" />
+        <input type="hidden" id="entry-type" value="expenditure" />
+        <input type="hidden" id="entry-source-type" value="" />
+        <div class="row2">
+          <div>
+            <label for="entry-date">Date</label>
+            <div class="date-field">
+              <input type="text" class="date-display" id="entry-date-display" readonly placeholder="DD-MMM-YYYY" />
+              <input type="date" class="date-picker-native" id="entry-date" data-display="entry-date-display" required />
+              <span class="date-cal" aria-hidden="true">📅</span>
+            </div>
+          </div>
+          <div><label for="entry-amount">Amount</label><input type="number" id="entry-amount" min="0.01" step="0.01" required /></div>
+        </div>
+        <label for="entry-desc">Description</label>
+        <input type="text" id="entry-desc" required maxlength="120" placeholder="What is this for?" />
+        <div class="row2">
+          <div>
+            <label for="entry-cat">Category</label>
+            <select id="entry-cat"></select>
+          </div>
+          <div>
+            <label for="entry-pay">Payment</label>
+            <select id="entry-pay"><option>Cash</option><option>Bank</option><option>UPI</option></select>
+          </div>
+        </div>
+        <label for="entry-note">Note</label>
+        <textarea id="entry-note" maxlength="300" placeholder="Optional"></textarea>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="entry-cancel">Cancel</button>
+          <button type="submit" class="btn btn-expense" id="entry-save">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-delete">
+    <div class="modal">
+      <h2>Delete entry?</h2>
+      <p id="delete-msg" style="color:var(--muted);font-size:0.9rem"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="delete-cancel">Cancel</button>
+        <button type="button" class="btn btn-expense" id="delete-confirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop mmss-layer" id="modal-mmss">
+    <div class="modal">
+      <h2 id="mmss-title">Confirm</h2>
+      <p id="mmss-msg" class="transfer-hint" style="margin-top:0"></p>
+      <div class="mmss-captcha" id="mmss-captcha-wrap">
+        <div class="mmss-captcha-label">Confirmation code</div>
+        <div class="mmss-captcha-digits" id="mmss-captcha" aria-hidden="true"></div>
+      </div>
+      <label for="mmss-code">Type the 4-digit code above</label>
+      <input
+        type="tel"
+        class="mmss-input"
+        id="mmss-code"
+        inputmode="numeric"
+        maxlength="4"
+        autocomplete="off"
+        placeholder="····"
+        aria-describedby="mmss-error"
+      />
+      <p id="mmss-error" class="mmss-error" hidden>Code does not match. Try again.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="mmss-cancel">Cancel</button>
+        <button type="button" class="btn btn-income" id="mmss-confirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_XML_KEY = "kholhang_ecashbook_xml";
+    const INR_CODE = "INR";
+    const INR_SYMBOL = "₹";
+
+    function normalizePayment(payment) {
+      const p = String(payment || "Cash").trim();
+      if (p === "Mobile" || p.toLowerCase() === "bkash") return "UPI";
+      if (p === "Cash" || p === "Bank" || p === "UPI") return p;
+      return "Cash";
+    }
+
+    function normalizeEntryForInr(entry) {
+      return { ...entry, payment: normalizePayment(entry.payment) };
+    }
+
+    function applyInrSettings(settings) {
+      return {
+        ...settings,
+        currencyCode: INR_CODE,
+        currencySymbol: INR_SYMBOL,
+      };
+    }
+
+    function normalizeStateForInr(data) {
+      data.settings = applyInrSettings(data.settings || {});
+      data.income = (data.income || []).map(normalizeEntryForInr);
+      data.expenditure = (data.expenditure || []).map(normalizeEntryForInr);
+      return data;
+    }
+
+    function todayISO() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+
+    const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    function isoToDisplay(iso) {
+      if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "";
+      const [y, m, d] = iso.split("-");
+      return `${d}-${MONTH_SHORT[parseInt(m, 10) - 1]}-${y}`;
+    }
+
+    function formatDateDisplay(iso) {
+      const s = isoToDisplay(iso);
+      return s || iso || "—";
+    }
+
+    function updateDateDisplay(picker) {
+      const displayId = picker.dataset.display;
+      if (!displayId) return;
+      const display = document.getElementById(displayId);
+      if (display) display.value = isoToDisplay(picker.value);
+    }
+
+    function setPickerIso(pickerId, iso) {
+      const picker = document.getElementById(pickerId);
+      if (!picker) return;
+      picker.value = iso || "";
+      updateDateDisplay(picker);
+    }
+
+    function getPickerIso(pickerId) {
+      return document.getElementById(pickerId)?.value || "";
+    }
+
+    function initDatePickers() {
+      document.querySelectorAll("input.date-picker-native").forEach((picker) => {
+        updateDateDisplay(picker);
+        picker.addEventListener("change", () => updateDateDisplay(picker));
+        picker.addEventListener("input", () => updateDateDisplay(picker));
+      });
+      document.querySelectorAll(".date-field").forEach((field) => {
+        field.addEventListener("click", (ev) => {
+          const picker = field.querySelector("input.date-picker-native");
+          if (!picker || ev.target === picker) return;
+          if (typeof picker.showPicker === "function") {
+            try {
+              picker.showPicker();
+            } catch {
+              picker.focus();
+            }
+          } else {
+            picker.focus();
+          }
+        });
+      });
+    }
+
+    let mmssResolve = null;
+    let mmssChallengeCode = "";
+
+    function getExpectedMmss() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      return pad(d.getMinutes()) + pad(d.getSeconds());
+    }
+
+    function renderMmssCaptcha(code) {
+      const twists = [-10, 6, -4, 9];
+      const el = document.getElementById("mmss-captcha");
+      el.innerHTML = code
+        .split("")
+        .map(
+          (ch, i) =>
+            `<span style="transform: rotate(${twists[i % twists.length]}deg) scale(${0.92 + (i % 3) * 0.04})">${ch}</span>`
+        )
+        .join("");
+    }
+
+    function closeMmssModal(result) {
+      document.getElementById("modal-mmss").classList.remove("open");
+      mmssChallengeCode = "";
+      const resolve = mmssResolve;
+      mmssResolve = null;
+      if (resolve) resolve(result);
+    }
+
+    function requestMmssValidation(title, detail) {
+      return new Promise((resolve) => {
+        mmssResolve = resolve;
+        mmssChallengeCode = getExpectedMmss();
+        renderMmssCaptcha(mmssChallengeCode);
+        document.getElementById("mmss-title").textContent = title;
+        document.getElementById("mmss-msg").textContent = detail || "Confirm this action.";
+        const input = document.getElementById("mmss-code");
+        input.value = "";
+        document.getElementById("mmss-error").hidden = true;
+        document.getElementById("modal-mmss").classList.add("open");
+        setTimeout(() => input.focus(), 50);
+      });
+    }
+
+    function tryConfirmMmss() {
+      const input = document.getElementById("mmss-code");
+      const entered = input.value.replace(/\D/g, "");
+      input.value = entered;
+      if (entered.length !== 4) {
+        document.getElementById("mmss-error").textContent = "Enter all 4 digits.";
+        document.getElementById("mmss-error").hidden = false;
+        return;
+      }
+      if (entered !== mmssChallengeCode) {
+        document.getElementById("mmss-error").textContent = "Code does not match. Try again.";
+        document.getElementById("mmss-error").hidden = false;
+        input.select();
+        return;
+      }
+      closeMmssModal(true);
+    }
+
+    document.getElementById("mmss-cancel").addEventListener("click", () => closeMmssModal(false));
+    document.getElementById("mmss-confirm").addEventListener("click", tryConfirmMmss);
+    document.getElementById("mmss-code").addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        tryConfirmMmss();
+      }
+    });
+    document.getElementById("modal-mmss").addEventListener("click", (ev) => {
+      if (ev.target.id === "modal-mmss") closeMmssModal(false);
+    });
+
+    async function requireMmss(title, detail) {
+      return requestMmssValidation(title, detail);
+    }
+
+    function escapeXml(text) {
+      return String(text ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function textEl(parent, tag, text) {
+      const el = parent.ownerDocument.createElement(tag);
+      el.textContent = text ?? "";
+      return el;
+    }
+
+    function parseCashBookXml(xmlString) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlString, "application/xml");
+      if (doc.querySelector("parsererror")) throw new Error("Invalid XML");
+
+      const root = doc.documentElement;
+      const settingsEl = root.querySelector("Settings");
+      const settings = {
+        bookName: settingsEl?.querySelector("BookName")?.textContent?.trim() || "Kholhang eCashBook",
+        currencyCode: settingsEl?.querySelector("CurrencyCode")?.textContent?.trim() || INR_CODE,
+        currencySymbol: settingsEl?.querySelector("CurrencySymbol")?.textContent?.trim() || INR_SYMBOL,
+        openingBalance: parseFloat(settingsEl?.querySelector("OpeningBalance")?.textContent || "0") || 0,
+      };
+
+      function readEntries(sectionName) {
+        const section = root.querySelector(sectionName);
+        if (!section) return [];
+        return [...section.querySelectorAll(":scope > Entry")].map((node) => ({
+          id: node.getAttribute("id") || uid(),
+          date: node.getAttribute("date") || todayISO(),
+          category: node.getAttribute("category") || "Other",
+          payment: normalizePayment(node.getAttribute("payment") || "Cash"),
+          description: node.querySelector("Description")?.textContent?.trim() || "",
+          amount: parseFloat(node.querySelector("Amount")?.textContent || "0") || 0,
+          note: node.querySelector("Note")?.textContent?.trim() || "",
+        }));
+      }
+
+      return normalizeStateForInr({
+        version: root.getAttribute("version") || "1",
+        updated: root.getAttribute("updated") || todayISO(),
+        settings,
+        income: readEntries("Income"),
+        expenditure: readEntries("Expenditure"),
+      });
+    }
+
+    function buildCashBookXml(state) {
+      const doc = document.implementation.createDocument(null, "CashBook", null);
+      const root = doc.documentElement;
+      root.setAttribute("version", state.version || "1");
+      root.setAttribute("app", "Kholhang eCashBook");
+      root.setAttribute("updated", todayISO());
+
+      const settings = doc.createElement("Settings");
+      settings.appendChild(textEl(settings, "BookName", state.settings.bookName));
+      settings.appendChild(textEl(settings, "CurrencyCode", INR_CODE));
+      settings.appendChild(textEl(settings, "CurrencySymbol", INR_SYMBOL));
+      settings.appendChild(textEl(settings, "OpeningBalance", Number(state.settings.openingBalance).toFixed(2)));
+      root.appendChild(settings);
+
+      function appendEntries(parentName, list) {
+        const parent = doc.createElement(parentName);
+        list.forEach((e) => {
+          const entry = doc.createElement("Entry");
+          entry.setAttribute("id", e.id);
+          entry.setAttribute("date", e.date);
+          entry.setAttribute("category", e.category);
+          entry.setAttribute("payment", normalizePayment(e.payment));
+          entry.appendChild(textEl(entry, "Description", e.description));
+          entry.appendChild(textEl(entry, "Amount", Number(e.amount).toFixed(2)));
+          entry.appendChild(textEl(entry, "Note", e.note || ""));
+          parent.appendChild(entry);
+        });
+        root.appendChild(parent);
+      }
+
+      appendEntries("Income", state.income);
+      appendEntries("Expenditure", state.expenditure);
+
+      const serializer = new XMLSerializer();
+      return '<?xml version="1.0" encoding="UTF-8"?>\n' + serializer.serializeToString(doc);
+    }
+
+    function uid() {
+      return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    }
+
+    function getSeedXml() {
+      return document.getElementById("seed-xml").textContent.trim();
+    }
+
+    async function loadInitialState() {
+      const stored = localStorage.getItem(STORAGE_XML_KEY);
+      if (stored) {
+        try {
+          return parseCashBookXml(stored);
+        } catch {
+          /* fall through */
+        }
+      }
+      try {
+        const res = await fetch("cashbook-data.xml", { cache: "no-store" });
+        if (res.ok) return parseCashBookXml(await res.text());
+      } catch {
+        /* file:// or missing file */
+      }
+      return parseCashBookXml(getSeedXml());
+    }
+
+    function saveState() {
+      state = normalizeStateForInr(state);
+      state.updated = todayISO();
+      const xml = buildCashBookXml(state);
+      localStorage.setItem(STORAGE_XML_KEY, xml);
+    }
+
+    let state = null;
+    let pendingDelete = null;
+    let entryModalType = "expenditure";
+
+    const CATEGORIES = {
+      expenditure: ["General", "Food", "Transport", "Bills", "Shopping", "Other"],
+      income: ["Salary", "Business", "Investment", "Gift", "Other"],
+    };
+
+    function getActiveTab() {
+      const panel = document.querySelector(".panel.active");
+      if (panel?.id === "panel-income") return "income";
+      if (panel?.id === "panel-expenditure") return "expenditure";
+      if (panel?.id === "panel-report") return "report";
+      const tab = document.querySelector(".tab.active");
+      return tab?.dataset?.tab || "expenditure";
+    }
+
+    let lastEntryTab = "expenditure";
+
+    /** New entry type follows the visible Income / Expenditure tab. */
+    function getNewEntryTypeForFab() {
+      const tab = getActiveTab();
+      if (tab === "income") return "income";
+      if (tab === "expenditure") return "expenditure";
+      return lastEntryTab;
+    }
+
+    function shouldLockEntryTypeForFab() {
+      const tab = getActiveTab();
+      return tab === "income" || tab === "expenditure";
+    }
+
+    function setEntryTypeLockedUi(modalType, locked) {
+      const toggle = document.getElementById("entry-type-toggle");
+      const badge = document.getElementById("entry-type-locked");
+      const isNewFromTab = locked && !document.getElementById("entry-id").value;
+      if (isNewFromTab) {
+        toggle.classList.add("locked-hidden");
+        toggle.classList.remove("disabled");
+        badge.hidden = false;
+        badge.classList.remove("income", "expenditure");
+        badge.classList.add(modalType);
+        badge.textContent =
+          modalType === "income" ? "Adding to Income (current tab)" : "Adding to Expenditure (current tab)";
+      } else {
+        toggle.classList.remove("locked-hidden");
+        badge.hidden = true;
+      }
+    }
+
+    function fillCategorySelect(type, selected) {
+      const sel = document.getElementById("entry-cat");
+      const list = CATEGORIES[type] || CATEGORIES.expenditure;
+      sel.innerHTML = list.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+      if (selected && list.includes(selected)) sel.value = selected;
+    }
+
+    function setEntryModalType(type) {
+      entryModalType = type === "income" ? "income" : "expenditure";
+      document.getElementById("entry-type").value = entryModalType;
+      const toggle = document.getElementById("entry-type-toggle");
+      toggle.querySelectorAll("button").forEach((btn) => {
+        const on = btn.dataset.type === entryModalType;
+        btn.classList.toggle("active", on);
+      });
+      const prev = document.getElementById("entry-cat").value;
+      fillCategorySelect(entryModalType, prev);
+      const saveBtn = document.getElementById("entry-save");
+      saveBtn.classList.remove("btn-income", "btn-expense");
+      saveBtn.classList.add(entryModalType === "income" ? "btn-income" : "btn-expense");
+      saveBtn.textContent = document.getElementById("entry-id").value
+        ? entryModalType === "income"
+          ? "Update income"
+          : "Update expenditure"
+        : entryModalType === "income"
+          ? "Save income"
+          : "Save expenditure";
+    }
+
+    function closeEntryModal() {
+      document.getElementById("modal-entry").classList.remove("open");
+      document.getElementById("form-entry").reset();
+      document.getElementById("entry-id").value = "";
+      document.getElementById("entry-source-type").value = "";
+      document.getElementById("entry-transfer-hint").hidden = true;
+      document.getElementById("entry-type-toggle").classList.remove("disabled", "locked-hidden");
+      document.getElementById("entry-type-locked").hidden = true;
+      document.getElementById("entry-modal-title").textContent = "New entry";
+      setEntryModalType("expenditure");
+    }
+
+    function entryStorageKey(type) {
+      return type === "income" ? "income" : "expenditure";
+    }
+
+    function normalizeCategoryForType(type, category) {
+      const list = CATEGORIES[entryStorageKey(type)];
+      return list.includes(category) ? category : "Other";
+    }
+
+    function transferEntry(fromKey, id) {
+      const toKey = fromKey === "income" ? "expenditure" : "income";
+      const idx = state[fromKey].findIndex((x) => x.id === id);
+      if (idx < 0) return false;
+      const entry = { ...state[fromKey][idx] };
+      entry.category = normalizeCategoryForType(toKey, entry.category);
+      state[fromKey].splice(idx, 1);
+      state[toKey].push(entry);
+      return true;
+    }
+
+    function transferEntryWithConfirm(fromKey, id) {
+      const toKey = fromKey === "income" ? "expenditure" : "income";
+      const e = state[fromKey].find((x) => x.id === id);
+      if (!e) return;
+      const toLabel = toKey === "income" ? "Income" : "Expenditure";
+      if (!confirm(`Move "${e.description}" (${formatMoney(e.amount)}) to ${toLabel}?`)) return;
+      requireMmss("Transfer entry", `Move "${e.description}" to ${toLabel}.`).then((ok) => {
+        if (!ok) return;
+        if (transferEntry(fromKey, id)) {
+          refresh();
+          document.querySelector(`.tab[data-tab="${toKey}"]`).click();
+        }
+      });
+    }
+
+    function openEntryModal(options = {}) {
+      const { type, edit, lockType } = options;
+      const isEdit = !!edit;
+      const modalType = isEdit ? entryStorageKey(type) : getNewEntryTypeForFab();
+      const lock = isEdit ? false : lockType ?? shouldLockEntryTypeForFab();
+
+      document.getElementById("entry-modal-title").textContent = isEdit
+        ? "Edit entry"
+        : modalType === "income"
+          ? "New income"
+          : "New expenditure";
+      setPickerIso("entry-date", edit?.date || todayISO());
+      document.getElementById("entry-desc").value = edit?.description || "";
+      document.getElementById("entry-amount").value = edit?.amount ?? "";
+      document.getElementById("entry-pay").value = edit?.payment || "Cash";
+      document.getElementById("entry-note").value = edit?.note || "";
+      document.getElementById("entry-id").value = edit?.id || "";
+      document.getElementById("entry-source-type").value = isEdit ? entryStorageKey(type) : "";
+      document.getElementById("entry-transfer-hint").hidden = !isEdit;
+      setEntryModalType(modalType);
+      if (edit?.category) document.getElementById("entry-cat").value = edit.category;
+      document.getElementById("entry-type-toggle").classList.toggle("disabled", lock && isEdit);
+      setEntryTypeLockedUi(modalType, lock);
+      document.getElementById("modal-entry").classList.add("open");
+      setTimeout(() => document.getElementById("entry-desc").focus(), 50);
+    }
+
+    function sym() {
+      return INR_SYMBOL;
+    }
+
+    function formatMoney(n) {
+      const formatted = Number(n).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      return INR_SYMBOL + formatted;
+    }
+
+    function sumEntries(entries) {
+      return entries.reduce((s, e) => s + Number(e.amount || 0), 0);
+    }
+
+    function closingBalance() {
+      return state.settings.openingBalance + sumEntries(state.income) - sumEntries(state.expenditure);
+    }
+
+    function updateHeader() {
+      const open = state.settings.openingBalance;
+      const totalInc = sumEntries(state.income);
+      const totalExp = sumEntries(state.expenditure);
+      const close = open + totalInc - totalExp;
+      document.getElementById("bookTitle").textContent = state.settings.bookName;
+      document.getElementById("headerOpening").textContent = formatMoney(open);
+      document.getElementById("headerIncome").textContent = formatMoney(totalInc);
+      document.getElementById("headerExpense").textContent = formatMoney(totalExp);
+      const el = document.getElementById("headerBalance");
+      el.textContent = formatMoney(close);
+      el.classList.toggle("positive", close >= 0);
+      el.classList.toggle("negative", close < 0);
+      document.getElementById("balanceHint").textContent =
+        `Opening ${formatMoney(open)} + Income ${formatMoney(totalInc)} − Expenditure ${formatMoney(totalExp)}`;
+      document.getElementById("set-opening").value = open;
+      document.getElementById("set-currency").value = `${INR_CODE} (${INR_SYMBOL})`;
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement("div");
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function matchesSearch(entry, q) {
+      if (!q) return true;
+      const hay = `${entry.description} ${entry.category} ${entry.note} ${entry.payment}`.toLowerCase();
+      return hay.includes(q.toLowerCase());
+    }
+
+    function renderEntryCards(containerId, entries, type, searchId) {
+      const q = document.getElementById(searchId)?.value?.trim() || "";
+      const list = document.getElementById(containerId);
+      const sorted = [...entries]
+        .filter((e) => matchesSearch(e, q))
+        .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+
+      if (!sorted.length) {
+        list.innerHTML = '<div class="list-empty">No entries found.</div>';
+        return;
+      }
+
+      const sign = type === "income" ? "+" : "−";
+      const transferLabel = type === "income" ? "Move to Expenditure" : "Move to Income";
+      list.innerHTML = sorted
+        .map(
+          (e) => `
+        <article class="entry-card ${type}" data-id="${escapeHtml(e.id)}" data-type="${type}">
+          <div class="entry-card-head">
+            <div class="entry-card-title">${escapeHtml(e.description)}</div>
+            <div class="entry-card-amount ${type}">${sign}${formatMoney(e.amount)}</div>
+          </div>
+          <div class="entry-card-meta">
+            <span class="badge">${escapeHtml(formatDateDisplay(e.date))}</span>
+            <span class="badge">${escapeHtml(e.category)}</span>
+            <span class="badge pay">${escapeHtml(e.payment || "Cash")}</span>
+          </div>
+          ${e.note ? `<div class="entry-card-note">${escapeHtml(e.note)}</div>` : ""}
+          <div class="entry-card-actions">
+            <button type="button" class="btn btn-secondary btn-sm btn-transfer">${transferLabel}</button>
+            <button type="button" class="btn btn-secondary btn-sm btn-edit">Edit</button>
+            <button type="button" class="btn btn-secondary btn-sm btn-del">Delete</button>
+          </div>
+        </article>`
+        )
+        .join("");
+
+      list.querySelectorAll(".btn-transfer").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const card = btn.closest(".entry-card");
+          const fromKey = entryStorageKey(card.dataset.type);
+          transferEntryWithConfirm(fromKey, card.dataset.id);
+        });
+      });
+
+      list.querySelectorAll(".btn-edit").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const card = btn.closest(".entry-card");
+          startEdit(card.dataset.type, card.dataset.id);
+        });
+      });
+      list.querySelectorAll(".btn-del").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const card = btn.closest(".entry-card");
+          openDeleteModal(card.dataset.type, card.dataset.id);
+        });
+      });
+    }
+
+    function refresh() {
+      updateHeader();
+      renderEntryCards("cards-expenditure", state.expenditure, "expenditure", "search-expenditure");
+      renderEntryCards("cards-income", state.income, "income", "search-income");
+      if (document.getElementById("panel-report").classList.contains("active")) renderReport();
+      saveState();
+    }
+
+    function startEdit(type, id) {
+      const key = entryStorageKey(type);
+      const e = state[key].find((x) => x.id === id);
+      if (!e) return;
+      openEntryModal({ type: key, edit: e });
+    }
+
+    function upsertEntry(type, entry) {
+      const key = entryStorageKey(type);
+      const idx = state[key].findIndex((x) => x.id === entry.id);
+      if (idx >= 0) state[key][idx] = entry;
+      else state[key].push(entry);
+    }
+
+    function openDeleteModal(type, id) {
+      const key = type === "income" ? "income" : "expenditure";
+      const e = state[key].find((x) => x.id === id);
+      if (!e) return;
+      pendingDelete = { type: key, id };
+      document.getElementById("delete-msg").textContent = `${e.description} — ${formatMoney(e.amount)}`;
+      document.getElementById("modal-delete").classList.add("open");
+    }
+
+    document.getElementById("delete-cancel").addEventListener("click", () => {
+      pendingDelete = null;
+      document.getElementById("modal-delete").classList.remove("open");
+    });
+    document.getElementById("delete-confirm").addEventListener("click", () => {
+      if (!pendingDelete) return;
+      const msg = document.getElementById("delete-msg").textContent;
+      const snapshot = { ...pendingDelete };
+      requireMmss("Delete entry", msg).then((ok) => {
+        if (!ok) return;
+        state[snapshot.type] = state[snapshot.type].filter((x) => x.id !== snapshot.id);
+        pendingDelete = null;
+        document.getElementById("modal-delete").classList.remove("open");
+        refresh();
+      });
+    });
+
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const name = tab.dataset.tab;
+        if (name === "income" || name === "expenditure") lastEntryTab = name;
+        document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === tab));
+        document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === `panel-${name}`));
+        if (name === "report") renderReport();
+        updateFabLabel();
+      });
+    });
+
+    document.getElementById("fab-new-entry").addEventListener("click", () => {
+      openEntryModal({ lockType: shouldLockEntryTypeForFab() });
+    });
+
+    function updateFabLabel() {
+      const tab = getActiveTab();
+      const fab = document.getElementById("fab-new-entry");
+      const label = document.getElementById("fab-label");
+      if (tab === "income") {
+        label.textContent = "New Income";
+        fab.setAttribute("aria-label", "New income entry");
+      } else if (tab === "expenditure") {
+        label.textContent = "New Expenditure";
+        fab.setAttribute("aria-label", "New expenditure entry");
+      } else {
+        label.textContent = "New Entry";
+        fab.setAttribute("aria-label", "New entry");
+      }
+    }
+
+    document.getElementById("entry-type-toggle").addEventListener("click", (ev) => {
+      const btn = ev.target.closest("button[data-type]");
+      if (!btn) return;
+      if (document.getElementById("entry-type-toggle").classList.contains("disabled")) return;
+      setEntryModalType(btn.dataset.type);
+    });
+
+    document.getElementById("entry-cancel").addEventListener("click", closeEntryModal);
+
+    document.getElementById("modal-entry").addEventListener("click", (ev) => {
+      if (ev.target.id === "modal-entry") closeEntryModal();
+    });
+
+    document.getElementById("form-entry").addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      const isEdit = !!document.getElementById("entry-id").value;
+      const type = document.getElementById("entry-type").value;
+      const actionTitle = isEdit ? "Update entry" : "Create entry";
+      const actionDetail = isEdit
+        ? `Save changes to "${document.getElementById("entry-desc").value.trim()}".`
+        : `Add new ${type === "income" ? "income" : "expenditure"} entry.`;
+
+      requireMmss(actionTitle, actionDetail).then((ok) => {
+        if (!ok) return;
+        const key = entryStorageKey(type);
+        const id = document.getElementById("entry-id").value || uid();
+        const sourceKey = document.getElementById("entry-source-type").value;
+        const entry = {
+          id,
+          date: getPickerIso("entry-date"),
+          description: document.getElementById("entry-desc").value.trim(),
+          category: document.getElementById("entry-cat").value,
+          payment: document.getElementById("entry-pay").value,
+          amount: parseFloat(document.getElementById("entry-amount").value),
+          note: document.getElementById("entry-note").value.trim(),
+        };
+        entry.category = normalizeCategoryForType(key, entry.category);
+        if (sourceKey && sourceKey !== key) {
+          state[sourceKey] = state[sourceKey].filter((x) => x.id !== id);
+        }
+        upsertEntry(key, entry);
+        closeEntryModal();
+        refresh();
+        document.querySelector(`.tab[data-tab="${key}"]`).click();
+      });
+    });
+
+    document.getElementById("search-expenditure").addEventListener("input", () =>
+      renderEntryCards("cards-expenditure", state.expenditure, "expenditure", "search-expenditure")
+    );
+    document.getElementById("search-income").addEventListener("input", () =>
+      renderEntryCards("cards-income", state.income, "income", "search-income")
+    );
+
+    function inDateRange(dateStr, from, to) {
+      if (from && dateStr < from) return false;
+      if (to && dateStr > to) return false;
+      return true;
+    }
+
+    function groupByCategory(entries) {
+      const map = {};
+      entries.forEach((e) => {
+        const c = e.category || "Other";
+        map[c] = (map[c] || 0) + Number(e.amount);
+      });
+      return Object.entries(map).sort((a, b) => b[1] - a[1]);
+    }
+
+    function renderReport() {
+      const from = document.getElementById("report-from").value;
+      const to = document.getElementById("report-to").value;
+      const inc = state.income.filter((e) => inDateRange(e.date, from, to));
+      const exp = state.expenditure.filter((e) => inDateRange(e.date, from, to));
+      const totalInc = sumEntries(inc);
+      const totalExp = sumEntries(exp);
+      const periodNet = totalInc - totalExp;
+      const open = state.settings.openingBalance;
+      const close = open + sumEntries(state.income) - sumEntries(state.expenditure);
+
+      document.getElementById("report-summary").innerHTML = `
+        <div class="report-row"><span>Opening balance</span><strong>${formatMoney(open)}</strong></div>
+        <div class="report-row"><span>Period income</span><strong style="color:var(--income)">+${formatMoney(totalInc)}</strong></div>
+        <div class="report-row"><span>Period expenditure</span><strong style="color:var(--expense)">−${formatMoney(totalExp)}</strong></div>
+        <div class="report-row"><span>Period net</span><strong>${formatMoney(periodNet)}</strong></div>
+        <div class="report-row"><span>Closing balance (all time)</span><strong>${formatMoney(close)}</strong></div>
+      `;
+
+      const incCats = groupByCategory(inc);
+      const expCats = groupByCategory(exp);
+      let catHtml = '<table class="cat-table"><thead><tr><th>Income category</th><th>Amount</th></tr></thead><tbody>';
+      incCats.forEach(([c, a]) => { catHtml += `<tr><td>${escapeHtml(c)}</td><td>${formatMoney(a)}</td></tr>`; });
+      if (!incCats.length) catHtml += '<tr><td colspan="2">—</td></tr>';
+      catHtml += '</tbody></table><table class="cat-table"><thead><tr><th>Expense category</th><th>Amount</th></tr></thead><tbody>';
+      expCats.forEach(([c, a]) => { catHtml += `<tr><td>${escapeHtml(c)}</td><td>${formatMoney(a)}</td></tr>`; });
+      if (!expCats.length) catHtml += '<tr><td colspan="2">—</td></tr>';
+      catHtml += "</tbody></table>";
+      document.getElementById("report-by-category").innerHTML = catHtml;
+
+      const combined = [
+        ...state.income.map((e) => ({ ...e, type: "income" })),
+        ...state.expenditure.map((e) => ({ ...e, type: "expenditure" })),
+      ]
+        .filter((e) => inDateRange(e.date, from, to))
+        .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+
+      let running = open;
+      if (from) {
+        const before = [
+          ...state.income.map((e) => ({ ...e, type: "income" })),
+          ...state.expenditure.map((e) => ({ ...e, type: "expenditure" })),
+        ].filter((e) => e.date < from);
+        before.forEach((e) => {
+          running += e.type === "income" ? e.amount : -e.amount;
+        });
+      }
+
+      const ledger = document.getElementById("ledger-list");
+      if (!combined.length) {
+        ledger.innerHTML = '<div class="list-empty">No transactions in this period.</div>';
+        return;
+      }
+
+      ledger.innerHTML = combined
+        .map((e) => {
+          const delta = e.type === "income" ? e.amount : -e.amount;
+          running += delta;
+          const sign = e.type === "income" ? "+" : "−";
+          return `
+          <article class="entry-card ${e.type}">
+            <div class="entry-card-head">
+              <div class="entry-card-title">${escapeHtml(e.description)}</div>
+              <div class="entry-card-amount ${e.type}">${sign}${formatMoney(e.amount)}</div>
+            </div>
+            <div class="entry-card-meta">
+              <span class="badge">${escapeHtml(formatDateDisplay(e.date))}</span>
+              <span class="badge">${e.type === "income" ? "Income" : "Expenditure"}</span>
+              <span class="badge">${escapeHtml(e.category)}</span>
+            </div>
+            <div class="ledger-balance">Balance: ${formatMoney(running)}</div>
+          </article>`;
+        })
+        .join("");
+    }
+
+    document.getElementById("report-from").addEventListener("change", renderReport);
+    document.getElementById("report-to").addEventListener("change", renderReport);
+    document.getElementById("btn-clear-filter").addEventListener("click", () => {
+      setPickerIso("report-from", "");
+      setPickerIso("report-to", "");
+      renderReport();
+    });
+
+    document.getElementById("btn-save-settings").addEventListener("click", () => {
+      requireMmss("Update settings", "Save opening balance and settings.").then((ok) => {
+        if (!ok) return;
+        state.settings.openingBalance = parseFloat(document.getElementById("set-opening").value) || 0;
+        state.settings = applyInrSettings(state.settings);
+        refresh();
+      });
+    });
+
+    function downloadFile(name, content, mime) {
+      const blob = new Blob([content], { type: mime });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    document.getElementById("btn-export-xml").addEventListener("click", () => {
+      downloadFile(`cashbook-${todayISO()}.xml`, buildCashBookXml(state), "application/xml");
+    });
+
+    document.getElementById("btn-import-xml").addEventListener("click", () => {
+      document.getElementById("file-xml").click();
+    });
+
+    document.getElementById("file-xml").addEventListener("change", async (ev) => {
+      const file = ev.target.files?.[0];
+      if (!file) return;
+      const ok = await requireMmss("Import XML", "Replace cashbook data from file.");
+      if (!ok) {
+        ev.target.value = "";
+        return;
+      }
+      try {
+        state = parseCashBookXml(await file.text());
+        refresh();
+        alert("XML imported successfully.");
+      } catch {
+        alert("Could not read XML file.");
+      }
+      ev.target.value = "";
+    });
+
+    document.getElementById("btn-export-csv").addEventListener("click", () => {
+      const rows = [
+        ["Type", "Date", "Description", "Category", "Payment", "Amount", "Note"],
+        ...state.income.map((e) => ["Income", formatDateDisplay(e.date), e.description, e.category, e.payment, e.amount, e.note]),
+        ...state.expenditure.map((e) => ["Expenditure", formatDateDisplay(e.date), e.description, e.category, e.payment, e.amount, e.note]),
+      ];
+      const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+      downloadFile(`cashbook-${todayISO()}.csv`, csv, "text/csv");
+    });
+
+    document.getElementById("btn-print").addEventListener("click", () => window.print());
+
+    document.getElementById("btn-reload-file").addEventListener("click", async () => {
+      try {
+        const res = await fetch("cashbook-data.xml", { cache: "no-store" });
+        if (!res.ok) throw new Error();
+        if (!confirm("Replace current data with cashbook-data.xml from disk?")) return;
+        const ok = await requireMmss("Reload XML", "Load cashbook-data.xml from disk.");
+        if (!ok) return;
+        state = parseCashBookXml(await res.text());
+        refresh();
+      } catch {
+        alert("Could not load cashbook-data.xml. Open via a local server, or use Import XML.");
+      }
+    });
+
+    document.getElementById("btn-reset-seed").addEventListener("click", async () => {
+      if (!confirm("Reset to built-in sample XML? Current data will be replaced.")) return;
+      const ok = await requireMmss("Reset data", "Restore built-in sample XML.");
+      if (!ok) return;
+      state = parseCashBookXml(getSeedXml());
+      refresh();
+    });
+
+    (async function init() {
+      state = normalizeStateForInr(await loadInitialState());
+      fillCategorySelect("expenditure");
+      initDatePickers();
+      setPickerIso("entry-date", todayISO());
+      const initialTab = getActiveTab();
+      if (initialTab === "income" || initialTab === "expenditure") lastEntryTab = initialTab;
+      updateFabLabel();
+      refresh();
+    })();
+  </script>
+</body>
+</html>

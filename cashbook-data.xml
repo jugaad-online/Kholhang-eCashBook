@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CashBook version="1" app="Kholhang eCashBook" updated="2026-07-10">
+  <Settings>
+    <BookName>Kholhang eCashBook</BookName>
+    <CurrencyCode>INR</CurrencyCode>
+    <CurrencySymbol>₹</CurrencySymbol>
+    <OpeningBalance>10000.00</OpeningBalance>
+  </Settings>
+  <Income>
+    <Entry id="inc-001" date="2026-07-01" category="Salary" payment="Bank">
+      <Description>July salary</Description>
+      <Amount>55000.00</Amount>
+      <Note>Main account credit</Note>
+    </Entry>
+    <Entry id="inc-002" date="2026-07-05" category="Business" payment="Cash">
+      <Description>Shop sales</Description>
+      <Amount>12500.00</Amount>
+      <Note></Note>
+    </Entry>
+    <Entry id="inc-003" date="2026-07-08" category="Other" payment="UPI">
+      <Description>UPI collection</Description>
+      <Amount>3200.00</Amount>
+      <Note>Customer payments</Note>
+    </Entry>
+  </Income>
+  <Expenditure>
+    <Entry id="exp-001" date="2026-07-02" category="Bills" payment="Bank">
+      <Description>Electricity bill</Description>
+      <Amount>2850.00</Amount>
+      <Note>State electricity board</Note>
+    </Entry>
+    <Entry id="exp-002" date="2026-07-03" category="Food" payment="Cash">
+      <Description>Market &amp; groceries</Description>
+      <Amount>4200.00</Amount>
+      <Note>Weekly stock</Note>
+    </Entry>
+    <Entry id="exp-003" date="2026-07-06" category="Transport" payment="Cash">
+      <Description>Fuel</Description>
+      <Amount>1500.00</Amount>
+      <Note></Note>
+    </Entry>
+    <Entry id="exp-004" date="2026-07-09" category="Shopping" payment="UPI">
+      <Description>Online purchase</Description>
+      <Amount>890.00</Amount>
+      <Note>Office supplies</Note>
+    </Entry>
+  </Expenditure>
+</CashBook>
