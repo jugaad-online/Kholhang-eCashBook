@@ -2,13 +2,32 @@
 
 A single-page **cashbook** for tracking **expenditure**, **income**, and **reports**. Data is stored as **XML** (with browser backup). Currency is **INR (₹)**. Sensitive changes are protected by a **4-digit confirmation code** (captcha-style).
 
+<p align="center">
+  <a href="https://jugaad-online.github.io/Kholhang-eCashBook/">
+    <img src="assets/launch-card.svg" alt="Click to open Kholhang eCashBook — Expenditure, Income, Report, INR" width="420" />
+  </a>
+</p>
+
+<p align="center">
+  <strong>Click the card above</strong> to open the launch page, then tap <strong>Open cashbook</strong>.<br />
+  Or use the direct app link: <a href="https://jugaad-online.github.io/Kholhang-eCashBook/cashbook.html">cashbook.html</a>
+</p>
+
+### Live app (GitHub Pages)
+
+**[Run Kholhang eCashBook](https://jugaad-online.github.io/Kholhang-eCashBook/)** — landing card → [`cashbook.html`](https://jugaad-online.github.io/Kholhang-eCashBook/cashbook.html)
+
+Repository: [github.com/jugaad-online/Kholhang-eCashBook](https://github.com/jugaad-online/Kholhang-eCashBook)
+
 ---
 
 ## Quick start (open in browser)
 
 | How | Link / action |
 |-----|----------------|
-| **Open locally (double-click)** | Open [`cashbook.html`](cashbook.html) in Chrome, Edge, or Firefox |
+| **Run online (recommended)** | **[https://jugaad-online.github.io/Kholhang-eCashBook/](https://jugaad-online.github.io/Kholhang-eCashBook/)** |
+| **App (direct)** | [https://jugaad-online.github.io/Kholhang-eCashBook/cashbook.html](https://jugaad-online.github.io/Kholhang-eCashBook/cashbook.html) |
+| **Open locally (double-click)** | Open [`cashbook.html`](cashbook.html) or [`index.html`](index.html) in Chrome, Edge, or Firefox |
 | **Sample data file** | [`cashbook-data.xml`](cashbook-data.xml) (optional; app also has built-in sample data) |
 
 > **Tip:** Double-click works for daily use. **Import XML** and **Reload cashbook-data.xml** need a [local web server](#run-with-a-local-web-server-recommended-for-xml-files) (see below).
@@ -45,31 +64,37 @@ Install **Live Server** (or similar), right-click `cashbook.html` → **Open wit
 
 ## Run from GitHub
 
-### Option A — GitHub Pages (clickable app URL)
+### Live app
 
-1. Push this folder to a GitHub repository.
-2. In the repo: **Settings → Pages**.
-3. **Source:** Deploy from branch (e.g. `main`) → folder **`/ (root)`** or `/docs` if you move files there.
-4. Save. After a minute, your site is live at:
+| Link | Use |
+|------|-----|
+| [https://jugaad-online.github.io/Kholhang-eCashBook/](https://jugaad-online.github.io/Kholhang-eCashBook/) | **Run the cashbook** (project home → `cashbook.html`) |
+| [https://jugaad-online.github.io/Kholhang-eCashBook/cashbook.html](https://jugaad-online.github.io/Kholhang-eCashBook/cashbook.html) | Open the app directly |
+| [https://jugaad-online.github.io/Kholhang-eCashBook/cashbook-data.xml](https://jugaad-online.github.io/Kholhang-eCashBook/cashbook-data.xml) | Sample XML (**Reload** on live site) |
 
-   `https://<your-username>.github.io/<repo-name>/cashbook.html`
+On [GitHub Pages](https://jugaad-online.github.io/Kholhang-eCashBook/), **Reload cashbook-data.xml** works without a local server.
 
-Replace `<your-username>` and `<repo-name>` with your values.
+### GitHub Pages setup
 
-### Option B — Clone and run locally
+- **Project site:** [https://jugaad-online.github.io/Kholhang-eCashBook/](https://jugaad-online.github.io/Kholhang-eCashBook/)
+- **Repo:** [jugaad-online/Kholhang-eCashBook](https://github.com/jugaad-online/Kholhang-eCashBook)
+- **Pages:** Settings → Pages → deploy from branch `main` (or your default), folder **`/ (root)`**
+- Include `index.html`, `cashbook.html`, and `cashbook-data.xml` in the repo root.
+
+### Clone and run locally
 
 ```bash
-git clone https://github.com/<your-username>/<repo-name>.git
-cd <repo-name>
+git clone https://github.com/jugaad-online/Kholhang-eCashBook.git
+cd Kholhang-eCashBook
 python -m http.server 8080
 ```
 
 Open: **http://localhost:8080/cashbook.html**
 
-### Option C — View files on GitHub
+### View source on GitHub
 
-- [`cashbook.html`](cashbook.html) — main app (download or clone to run)
-- [`cashbook-data.xml`](cashbook-data.xml) — sample XML data
+- [`cashbook.html`](https://github.com/jugaad-online/Kholhang-eCashBook/blob/main/cashbook.html) — main app
+- [`cashbook-data.xml`](https://github.com/jugaad-online/Kholhang-eCashBook/blob/main/cashbook-data.xml) — sample data
 
 ---
 
@@ -77,6 +102,8 @@ Open: **http://localhost:8080/cashbook.html**
 
 | File | Purpose |
 |------|---------|
+| [`index.html`](index.html) | **Launch card** page (click to open `cashbook.html`) |
+| [`assets/launch-card.svg`](assets/launch-card.svg) | Clickable card image in this README |
 | [`cashbook.html`](cashbook.html) | Full app (HTML, CSS, JavaScript in one file) |
 | [`cashbook-data.xml`](cashbook-data.xml) | Sample / editable XML cashbook data |
 | `README.md` | This documentation |
